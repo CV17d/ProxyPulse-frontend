@@ -63,6 +63,7 @@ function App() {
   const [searchTerm, setSearchTerm] = useState('');
   const [isPaused, setIsPaused] = useState(false);
   const [notifications, setNotifications] = useState([]);
+  const [stressingService, setStressingService] = useState(null);
 
   const fetchData = useCallback(async (manual = false) => {
     if (isPaused && !manual) return;
@@ -140,6 +141,7 @@ function App() {
 
   const handleStressTest = async (service) => {
     setSimulating(true);
+    setStressingService(service);
     const op = service === 'INVENTORY' ? 'getStock' : service === 'ORDERS' ? 'createOrder' : 'processPayment';
     const calls = Array(10).fill(0); // 10 peticiones simultáneas
     try {
@@ -149,6 +151,7 @@ function App() {
       // Los errores se capturarán en el siguiente poll
     } finally {
       setSimulating(false);
+      setStressingService(null);
     }
   };
 
@@ -261,7 +264,7 @@ function App() {
           const isCritical = (100 - serviceMetrics.successRate) > 15;
 
           return (
-            <div key={serviceName} className={`service-card ${isCritical ? 'critical' : ''} animate-fade`}>
+            <div key={serviceName} className={`service-card ${isCritical ? 'critical' : ''} ${stressingService === serviceName ? 'stressing' : ''} animate-fade`}>
               <div className="service-header">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                   <div style={{ color: isCritical ? 'var(--error)' : 'var(--accent-color)' }}>

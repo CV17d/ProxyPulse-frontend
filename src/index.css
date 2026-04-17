@@ -298,3 +298,15 @@ input:checked + .toggle-slider::before {
 .notification.leaving {
   animation: slideOut 0.3s ease-in forwards;
 }
+
+@keyframes pulse-stress {
+  0% { box-shadow: 0 0 0 0 rgba(79, 70, 229, 0.7); transform: scale(1); }
+  50% { box-shadow: 0 0 20px 10px rgba(79, 70, 229, 0); transform: scale(1.02); }
+  100% { box-shadow: 0 0 0 0 rgba(79, 70, 229, 0); transform: scale(1); }
+}
+
+.service-card.stressing {
+  animation: pulse-stress 0.5s infinite;
+  border-color: var(--accent-color);
+  background: rgba(99, 102, 241, 0.1);
+}
