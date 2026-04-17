@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
-import { 
-  Activity, 
-  Server, 
-  ShieldAlert, 
-  RefreshCcw, 
-  Clock, 
-  CheckCircle2, 
+import {
+  Activity,
+  Server,
+  ShieldAlert,
+  RefreshCcw,
+  Clock,
+  CheckCircle2,
   XCircle,
   Database,
   ShoppingCart,
@@ -15,18 +15,18 @@ import {
   ChevronDown,
   ChevronUp
 } from 'lucide-react';
-import { 
-  LineChart, 
-  Line, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer, 
-  Legend 
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend
 } from 'recharts';
 
-const API_BASE = 'http://localhost:8080/api';
+const API_BASE = 'https://proxypulse-backend-production.up.railway.app/api';
 
 const translateService = (name) => {
   switch (name) {
@@ -61,12 +61,12 @@ function App() {
     try {
       const [metricsRes, logsRes] = await Promise.all([
         axios.get(`${API_BASE}/metrics/summary`),
-        axios.get(`${API_BASE}/metrics/logs`, { 
-          params: { 
-            service: filters.service, 
+        axios.get(`${API_BASE}/metrics/logs`, {
+          params: {
+            service: filters.service,
             status: filters.status,
             size: 15
-          } 
+          }
         })
       ]);
       setMetrics(metricsRes.data);
@@ -109,9 +109,9 @@ function App() {
           <h1>PulsoProxy</h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Dashboard de Observabilidad de Microservicios</p>
         </div>
-        <button 
-          className="btn-primary" 
-          onClick={handleSimulate} 
+        <button
+          className="btn-primary"
+          onClick={handleSimulate}
           disabled={simulating}
           style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
         >
@@ -143,7 +143,7 @@ function App() {
                   {isCritical ? 'Inestable' : 'Saludable'}
                 </span>
               </div>
-              
+
               <div className="metric-row">
                 <div className="metric-item">
                   <span className="metric-label">Llamadas</span>
@@ -160,7 +160,7 @@ function App() {
                   <span className="metric-value">{Math.round(serviceMetrics.avgDuration)}ms</span>
                 </div>
               </div>
-              
+
               {isCritical && (
                 <div style={{ marginTop: '1rem', color: 'var(--error)', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                   <ShieldAlert size={14} /> Alta tasa de error detectada
@@ -178,16 +178,16 @@ function App() {
             <CartesianGrid strokeDasharray="3 3" stroke="#2d3748" vertical={false} />
             <XAxis dataKey="time" stroke="#94a3b8" fontSize={12} tickMargin={10} />
             <YAxis stroke="#94a3b8" fontSize={12} unit="ms" />
-            <Tooltip 
+            <Tooltip
               contentStyle={{ background: '#1a1d27', border: '1px solid #2d3748', borderRadius: '8px' }}
               itemStyle={{ color: '#fff' }}
             />
             <Legend />
-            <Line 
-              type="monotone" 
-              dataKey="duration" 
-              stroke="#6366f1" 
-              strokeWidth={3} 
+            <Line
+              type="monotone"
+              dataKey="duration"
+              stroke="#6366f1"
+              strokeWidth={3}
               dot={{ r: 4, fill: '#6366f1' }}
               activeDot={{ r: 6, stroke: '#fff', strokeWidth: 2 }}
               name="Tiempo de Respuesta"
@@ -200,8 +200,8 @@ function App() {
         <div className="filters-bar">
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <Search size={18} color="var(--text-secondary)" />
-            <select 
-              value={filters.service} 
+            <select
+              value={filters.service}
               onChange={e => setFilters(f => ({ ...f, service: e.target.value }))}
             >
               <option value="ALL">Todos los Servicios</option>
@@ -210,8 +210,8 @@ function App() {
               <option value="PAYMENTS">Pagos</option>
             </select>
           </div>
-          <select 
-            value={filters.status} 
+          <select
+            value={filters.status}
             onChange={e => setFilters(f => ({ ...f, status: e.target.value }))}
           >
             <option value="ALL">Todos los Estados</option>
