@@ -106,8 +106,11 @@ function App() {
     <div className="dashboard-container">
       <header className="header">
         <div className="title-group">
-          <h1>PulsoProxy</h1>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Dashboard de Observabilidad de Microservicios</p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.25rem' }}>
+            <img src="/logo.png" alt="Logo" style={{ width: '40px', height: '40px', borderRadius: '8px' }} />
+            <h1>PulsoProxy</h1>
+          </div>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginLeft: '52px' }}>Dashboard de Observabilidad de Microservicios</p>
         </div>
         <button
           className="btn-primary"
