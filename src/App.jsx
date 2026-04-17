@@ -13,7 +13,11 @@ import {
   CreditCard,
   Search,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Pause,
+  Play,
+  Bell,
+  X
 } from 'lucide-react';
 import {
   LineChart,
@@ -56,8 +60,12 @@ function App() {
     service: 'ALL',
     status: 'ALL'
   });
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isPaused, setIsPaused] = useState(false);
+  const [notifications, setNotifications] = useState([]);
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (manual = false) => {
+    if (isPaused && !manual) return;
     try {
       const [metricsRes, logsRes] = await Promise.all([
         axios.get(`${API_BASE}/metrics/summary`),
@@ -69,13 +77,33 @@ function App() {
           }
         })
       ]);
+      
+      // Check for new errors to notify
+      const newLogs = logsRes.data.content;
+      if (logs.length > 0 && !loading) {
+        const latestOldId = logs[0].requestId;
+        newLogs.forEach(log => {
+          if (log.status === 'ERROR' && log.requestId !== latestOldId) {
+            addNotification(log);
+          }
+        });
+      }
+
       setMetrics(metricsRes.data);
-      setLogs(logsRes.data.content);
+      setLogs(newLogs);
       setLoading(false);
     } catch (error) {
       console.error("Error fetching data:", error);
     }
-  }, [filters]);
+  }, [filters, isPaused, logs, loading]);
+
+  const addNotification = (log) => {
+    const id = Date.now();
+    setNotifications(prev => [{ id, ...log }, ...prev].slice(0, 3));
+    setTimeout(() => {
+      setNotifications(prev => prev.filter(n => n.id !== id));
+    }, 5000);
+  };
 
   useEffect(() => {
     fetchData();
@@ -112,6 +140,20 @@ function App() {
           </div>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginLeft: '60px' }}>Dashboard de Observabilidad de Microservicios</p>
         </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
+          <label className="toggle-switch">
+             <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                {isPaused ? 'Monitoreo Pausado' : 'Monitoreo Activo'}
+             </span>
+             <input 
+               type="checkbox" 
+               style={{ display: 'none' }} 
+               checked={!isPaused}
+               onChange={() => setIsPaused(!isPaused)}
+             />
+             <div className="toggle-slider"></div>
+          </label>
         <button
           className="btn-primary"
           onClick={handleSimulate}
@@ -121,7 +163,20 @@ function App() {
           <Activity size={18} className={simulating ? 'animate-spin' : ''} />
           {simulating ? 'Simulando...' : 'Simular Carga'}
         </button>
+        </div>
       </header>
+
+      <div className="notification-container">
+        {notifications.map(n => (
+          <div key={n.id} className="notification">
+            <Bell size={20} color="var(--error)" />
+            <div>
+              <div style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>Fallo en {translateService(n.serviceId)}</div>
+              <div style={{ fontSize: '0.8rem', opacity: 0.8 }}>{n.operation} falló</div>
+            </div>
+          </div>
+        ))}
+      </div>
 
       <div className="service-grid">
         {['INVENTORY', 'ORDERS', 'PAYMENTS'].map(serviceName => {
@@ -201,8 +256,17 @@ function App() {
 
       <div className="logs-section animate-fade">
         <div className="filters-bar">
+          <div style={{ position: 'relative', flex: 1, minWidth: '300px' }}>
+            <Search size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
+            <input 
+              type="text" 
+              placeholder="Buscar por ID, operación o mensaje..." 
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              style={{ width: '100%', paddingLeft: '2.5rem' }}
+            />
+          </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Search size={18} color="var(--text-secondary)" />
             <select
               value={filters.service}
               onChange={e => setFilters(f => ({ ...f, service: e.target.value }))}
@@ -239,7 +303,13 @@ function App() {
             </tr>
           </thead>
           <tbody>
-            {logs.map(log => (
+            {logs
+              .filter(log => 
+                log.requestId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                log.operation.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                (log.errorMessage && log.errorMessage.toLowerCase().includes(searchTerm.toLowerCase()))
+              )
+              .map(log => (
               <React.Fragment key={log.requestId}>
                 <tr onClick={() => setExpandedLog(expandedLog === log.requestId ? null : log.requestId)}>
                   <td style={{ color: 'var(--text-secondary)', fontFamily: 'monospace' }}>
