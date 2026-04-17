@@ -99,10 +99,24 @@ function App() {
 
   const addNotification = (log) => {
     const id = Date.now();
-    setNotifications(prev => [{ id, ...log }, ...prev].slice(0, 3));
+    setNotifications(prev => [{ id, leaving: false, ...log }, ...prev].slice(0, 3));
+    
+    // Iniciar animación de salida a los 4.7s
+    setTimeout(() => {
+      setNotifications(prev => prev.map(n => n.id === id ? { ...n, leaving: true } : n));
+    }, 4700);
+
+    // Eliminar del estado a los 5s
     setTimeout(() => {
       setNotifications(prev => prev.filter(n => n.id !== id));
     }, 5000);
+  };
+
+  const removeNotification = (id) => {
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, leaving: true } : n));
+    setTimeout(() => {
+      setNotifications(prev => prev.filter(n => n.id !== id));
+    }, 3000);
   };
 
   useEffect(() => {
@@ -168,12 +182,18 @@ function App() {
 
       <div className="notification-container">
         {notifications.map(n => (
-          <div key={n.id} className="notification">
+          <div key={n.id} className={`notification ${n.leaving ? 'leaving' : ''}`}>
             <Bell size={20} color="var(--error)" />
-            <div>
+            <div style={{ flex: 1 }}>
               <div style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>Fallo en {translateService(n.serviceId)}</div>
               <div style={{ fontSize: '0.8rem', opacity: 0.8 }}>{n.operation} falló</div>
             </div>
+            <button 
+              onClick={() => removeNotification(n.id)}
+              style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '4px' }}
+            >
+              <X size={16} />
+            </button>
           </div>
         ))}
       </div>

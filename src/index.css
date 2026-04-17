@@ -289,3 +289,12 @@ input:checked + .toggle-slider::before {
   from { opacity: 0; transform: translateX(30px); }
   to { opacity: 1; transform: translateX(0); }
 }
+
+@keyframes slideOut {
+  from { opacity: 1; transform: translateX(0); }
+  to { opacity: 0; transform: translateX(30px); }
+}
+
+.notification.leaving {
+  animation: slideOut 0.3s ease-in forwards;
+}
