@@ -132,11 +132,41 @@ function App() {
     setSimulating(true);
     try {
       await axios.post(`${API_BASE}/metrics/simulate-load`);
-      await fetchData();
+      await fetchData(true);
     } finally {
       setSimulating(false);
     }
   };
+
+  const handleStressTest = async (service) => {
+    setSimulating(true);
+    const op = service === 'INVENTORY' ? 'getStock' : service === 'ORDERS' ? 'createOrder' : 'processPayment';
+    const calls = Array(10).fill(0); // 10 peticiones simultáneas
+    try {
+      await Promise.all(calls.map(() => axios.post(`${API_BASE}/services/${service.toLowerCase()}/${op}`)));
+      await fetchData(true);
+    } catch (e) {
+      // Los errores se capturarán en el siguiente poll
+    } finally {
+      setSimulating(false);
+    }
+  };
+
+  const exportLogs = () => {
+    const blob = new Blob([JSON.stringify(logs, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `auditoria-logs-${new Date().getTime()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const globalHealth = metrics.length > 0 
+    ? metrics.reduce((acc, m) => acc + m.successRate, 0) / metrics.length 
+    : 100;
 
   const chartData = logs
     .slice(0, 20)
@@ -150,36 +180,55 @@ function App() {
   return (
     <div className="dashboard-container">
       <header className="header">
-        <div className="title-group">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.25rem' }}>
-            <img src="/logo.png" alt="Logo" style={{ width: '44px', height: '44px', objectFit: 'contain' }} />
-            <h1>ProxyPulse</h1>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+          <div className="title-group">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.25rem' }}>
+              <img src="/logo.png" alt="Logo" style={{ width: '44px', height: '44px', objectFit: 'contain' }} />
+              <h1>ProxyPulse</h1>
+            </div>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginLeft: '60px' }}>Dashboard de Observabilidad de Microservicios</p>
           </div>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginLeft: '60px' }}>Dashboard de Observabilidad de Microservicios</p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginLeft: '60px' }}>
+            <div style={{ height: '4px', width: '200px', background: '#334155', borderRadius: '2px', overflow: 'hidden' }}>
+              <div style={{ height: '100%', width: `${globalHealth}%`, background: globalHealth > 85 ? 'var(--success)' : globalHealth > 70 ? 'var(--warning)' : 'var(--error)', transition: '0.5s' }}></div>
+            </div>
+            <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: globalHealth > 85 ? 'var(--success)' : 'var(--warning)' }}>
+              Salud Global: {Math.round(globalHealth)}%
+            </span>
+          </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
-          <label className="toggle-switch">
-             <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                {isPaused ? 'Monitoreo Pausado' : 'Monitoreo Activo'}
-             </span>
-             <input 
-               type="checkbox" 
-               style={{ display: 'none' }} 
-               checked={!isPaused}
-               onChange={() => setIsPaused(!isPaused)}
-             />
-             <div className="toggle-slider"></div>
-          </label>
-        <button
-          className="btn-primary"
-          onClick={handleSimulate}
-          disabled={simulating}
-          style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
-        >
-          <Activity size={18} className={simulating ? 'animate-spin' : ''} />
-          {simulating ? 'Simulando...' : 'Simular Carga'}
-        </button>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
+            <label className="toggle-switch">
+              <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                  {isPaused ? 'Monitoreo Pausado' : 'Monitoreo Activo'}
+              </span>
+              <input 
+                type="checkbox" 
+                style={{ display: 'none' }} 
+                checked={!isPaused}
+                onChange={() => setIsPaused(!isPaused)}
+              />
+              <div className="toggle-slider"></div>
+            </label>
+            <button
+              className="btn-primary"
+              onClick={handleSimulate}
+              disabled={simulating}
+              style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+            >
+              <Activity size={18} className={simulating ? 'animate-spin' : ''} />
+              {simulating ? 'Simulando...' : 'Simular Carga'}
+            </button>
+          </div>
+          
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', alignSelf: 'center', marginRight: '0.5rem' }}>Pruebas de Estrés:</span>
+            <button onClick={() => handleStressTest('INVENTORY')} className="btn-secondary" style={{ fontSize: '0.7rem', padding: '4px 8px' }}>Inventario</button>
+            <button onClick={() => handleStressTest('ORDERS')} className="btn-secondary" style={{ fontSize: '0.7rem', padding: '4px 8px' }}>Pedidos</button>
+            <button onClick={() => handleStressTest('PAYMENTS')} className="btn-secondary" style={{ fontSize: '0.7rem', padding: '4px 8px' }}>Pagos</button>
+          </div>
         </div>
       </header>
 
@@ -309,7 +358,10 @@ function App() {
             <option value="ERROR">Error</option>
           </select>
           <div style={{ flex: 1 }}></div>
-          <button className="btn-secondary" onClick={fetchData} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <button className="btn-secondary" onClick={exportLogs} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--success)' }}>
+            <Database size={16} /> Exportar JSON
+          </button>
+          <button className="btn-secondary" onClick={() => fetchData(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <RefreshCcw size={16} /> Actualizar
           </button>
         </div>
