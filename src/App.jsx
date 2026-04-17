@@ -82,8 +82,9 @@ function App() {
       const newLogs = logsRes.data.content;
       if (logs.length > 0 && !loading) {
         const latestOldId = logs[0].requestId;
+        // Solo notificamos errores que NO estaban en la carga anterior
         newLogs.forEach(log => {
-          if (log.status === 'ERROR' && log.requestId !== latestOldId) {
+          if (log.status === 'ERROR' && !logs.some(old => old.requestId === log.requestId)) {
             addNotification(log);
           }
         });
@@ -98,17 +99,19 @@ function App() {
   }, [filters, isPaused, logs, loading]);
 
   const addNotification = (log) => {
-    const id = Date.now();
-    setNotifications(prev => [{ id, leaving: false, ...log }, ...prev].slice(0, 3));
+    const uniqueId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const newNotif = { ...log, id: uniqueId, leaving: false };
     
-    // Iniciar animación de salida a los 4.7s
+    setNotifications(prev => [newNotif, ...prev].slice(0, 3));
+    
+    // Timer para iniciar animación de salida (4.5s)
     setTimeout(() => {
-      setNotifications(prev => prev.map(n => n.id === id ? { ...n, leaving: true } : n));
-    }, 4700);
+      setNotifications(prev => prev.map(n => n.id === uniqueId ? { ...n, leaving: true } : n));
+    }, 4500);
 
-    // Eliminar del estado a los 5s
+    // Timer para borrar definitivamente (5s)
     setTimeout(() => {
-      setNotifications(prev => prev.filter(n => n.id !== id));
+      setNotifications(prev => prev.filter(n => n.id !== uniqueId));
     }, 5000);
   };
 
@@ -116,7 +119,7 @@ function App() {
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, leaving: true } : n));
     setTimeout(() => {
       setNotifications(prev => prev.filter(n => n.id !== id));
-    }, 3000);
+    }, 400); // 400ms es suficiente para la animación de salida
   };
 
   useEffect(() => {
